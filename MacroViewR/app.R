@@ -7,42 +7,59 @@
 #    http://shiny.rstudio.com/
 #
 
+library(FredR)
 library(shiny)
+library(ggplot2)
+library(tidyverse)
+library(lubridate)
+# api.key <- "59f051c54cc49a42ef1f3ba3426792b8"
+# fred <- FredR(api.key)
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
    
    # Application title
-   titlePanel("Old Faithful Geyser Data"),
+  tabsetPanel(
+    tabPanel("Home",
+    
+   titlePanel("MacroView"),
    
    # Sidebar with a slider input for number of bins 
-   sidebarLayout(
-      sidebarPanel(
-         sliderInput("bins",
-                     "Number of bins:",
-                     min = 1,
-                     max = 50,
-                     value = 30)
-      ),
+   helpText("Insert text about app")
       
-      # Show a plot of the generated distribution
-      mainPanel(
-         plotOutput("distPlot")
-      )
-   )
+   ),
+   tabPanel("Fed Data",
+            "Place fed data here.",
+            plotOutput("FFPlot"))
+)
+
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
    
-   output$distPlot <- renderPlot({
-      # generate bins based on input$bins from ui.R
-      x    <- faithful[, 2] 
-      bins <- seq(min(x), max(x), length.out = input$bins + 1)
-      
-      # draw the histogram with the specified number of bins
-      hist(x, breaks = bins, col = 'darkgray', border = 'white')
+  
+  
+  
+  #=== FEDERAL FUNDS RATE PLOT ===#
+  
+  FF <- fred$series.observations("DFF")
+  
+   output$FFPlot <- renderPlot({
+     FF <- fred$series.observations("DFF")
+     
+     
+     dt <-  FF %>% select(date, value) %>% as_tibble() %>% 
+       mutate(Date = as.Date(date), Rate = as.numeric(value)/100) %>%
+       group_by(Date = floor_date(Date, unit = "month")) %>% summarize(Rate = mean(Rate))
+     
+     
+     dt %>% ggplot(aes(x = Date, y = Rate)) + geom_smooth(span = .25, se = FALSE, size = 1.5) + geom_line() + ggtitle("Federal Funds Rate")
+     
    })
+   
+   
 }
 
 # Run the application 
